@@ -244,7 +244,7 @@
                         .append("div")
                         .attr("class", "buttons")
                         .selectAll("div")
-                        .data(["Left", "Right", "Both"])
+                        .data(["Right", "Left", "Both"])
                         .enter()
                         .append("div")
                         .text(function(d) {
@@ -253,14 +253,8 @@
 
         var selected_button = [false, false, false];
 
-        buttons.on("click", function(d) {
-          if(this.textContent === "Right"){
-            selected_button[0] = !selected_button[0];
-          }else if(this.textContent === "Left"){
-            selected_button[1] = !selected_button[1];
-          }else{
-            selected_button[2] = !selected_button[2];
-          };
+        // 按键处理
+        function select_button(selected_button){
 
           d3.select(".buttons")
             .selectAll("div")
@@ -289,15 +283,38 @@
               .style("color", "white");
           };
 
-          selectLR(selected_button);
-                });
+          selectLR(selected_button);   
         };
 
-        plotScatterLRScore();
+        buttons.on("click", function(){if(this.textContent === "Right"){
+            selected_button[0] = !selected_button[0];
+          }else if(this.textContent === "Left"){
+            selected_button[1] = !selected_button[1];
+          }else{
+            selected_button[2] = !selected_button[2];
+          };
+          select_button(selected_button);
+          }
+          );
 
-        debugger;
-        
-        
+        // 简单动画效果
+        var button_idx = 0;
+
+        var button_interval = setInterval(function() {
+            selected_button = [false, false, false];
+            selected_button[button_idx] = !select_button[button_idx];
+            select_button(selected_button);
+
+            button_idx++;
+            if(button_idx > 2){
+              clearInterval(button_interval);
+            }; 
+          }, 1000);
+        };
+      
+      plotScatterLRScore();
+      
+      
 
       };
       </script>
