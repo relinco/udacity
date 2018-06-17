@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+    <style>
+      
+    .tooltip{
+	    font-family: simsun;
+	    font-size: 14px;
+	    width: 120;
+	    height: auto;
+	    position: absolute;
+	    text-align: center;
+      border-style: solid; 
+	    border-width: 1px;
+	    background-color: white;
+	    border-radius: 5px;
+    }
+
+    .axis {
+      font-family: simsun;
+      font-size: 14px;
+    }
+
+    .bubble {
+        fill: orange;
+        stroke: black;
+        stroke-width: 0.7;
+        opacity: 0.6;
+      }
+
+    h2 {
+        text-align: center;
+        color: black;
+      }
+
+      div.buttons {
+        position: fixed;
+        top: 30px;
+        left: 100px;
+      }
+
+      div.buttons div {
+        background-color: rgb(251, 201, 127);
+        padding: 3px 15px 3px 15px;
+        margin: 7px;
+      }
+
+  
+    </style>
+    <script type="text/javascript">  
+      function draw(data) {
+        "use strict";
+        
+        d3.select("body")
+          .append("h2")
+          .text("baseballer player HR - avg scatter");
+        
+        var margin = 75,
+            width = 1400 - margin,
+            height = 600 - margin;
+
+        var svg = d3.select("body")
+            .append("svg")
+            .attr("width", width + margin)
+            .attr("height", height + margin);
+
+        
+        
+        function plotScatterLRScore(){
+          var radius = 3;
+          //清除当前画布
+          svg.select('g').remove();
+          var g = svg.append('g')
+                     .attr('class', 'LRscore');
+
+          //建立缩放尺
+          var x_extent = d3.extent(data, function(d){return d['avg'];});
+          var y_extent = d3.extent(data, function(d){return d['HR'];});
+          
+          var x_scaler = d3.scale
+                            .pow() 
+                            .exponent(3)
+                            .range([margin, width])
+                            .domain(x_extent);
+
+          var y_scaler = d3.scale.linear()
+                                 .range([height, margin])
+                                 .domain(y_extent);
+
+          //绘制x轴和y轴
+          var x_axis = d3.svg.axis()
+                             .scale(x_scaler);
+          
+          var y_axis = d3.svg.axis()
+                             .scale(y_scaler)
+                             .orient("left");
+
+          g.append('g')
+           .attr('class', 'x axis')
+           .attr('transform', 'translate(0,' + height + ')')
+           .call(x_axis)
+           .append("text")
+           .text("avg")
+           .attr("transform","translate("+ width +",14)");
+
+          g.append('g')
+           .attr('class', 'y axis')
+           .attr('transform', 'translate(' + margin + ', 0)')
+           .call(y_axis)
+           .append("text")
+           .text("HR")
+           .attr("transform","translate(-20, " + margin + ")");
+
+          //如何去除x轴的零点？
+          g.select('.x g text')
+           .attr("visibility", "hidden");
+
+          //添加点
+          g.append('g')
+           .attr('class', 'bubble')
+           .selectAll('circle')
+           .data(data)
+           .enter()
+           .append('circle')
+           .attr('cx', function(d){
+              return x_scaler(d['avg']);
+            })
+           .attr('cy', function(d){
+              return y_scaler(d['HR']);
+            })
+           .attr('r', radius);
+
+           //浮动提示框，通过visbillity来进行显示和隐藏
+           var tooltip = d3.select("body").append('div')
+                          .attr("class","tooltip")
+                          .style("visibility","hidden");  
+
+           
+           function hoverOnBubble(){
+            g.selectAll('circle')
+            .on("mouseover", function(d){
+              
+              //被选项突出
+              g.selectAll('circle')
+               .filter(function(node){
+                return node.id === d.id;
+               })
+               .each(function(){
+                 d3.select(this)
+                   //.attr("fill","red") 无法通过颜色突出，否则一会儿不好恢复了。。
+                   .style("stroke-width", "2.2")
+                   .style("opacity", "1.0") //为什么无效？
+                   .attr("r", 2*radius);
+               });
+
+              tooltip.html("name: "+ d.name +"</br>" + 
+                           "handedness: " + d.handedness + "</br>" +
+                           "height: " + d.height + "cm</br>" +
+                           "weight: " + d.weight + "kg</br>" +
+                           "avg: " + d.avg + "</br>" +
+                           "HR: " + d.HR + "</br>"
+                          )  
+                //设置tooltip的位置(left,top 相对于页面的距离)   
+                        .style("left",(d3.event.pageX)+"px")  
+                        .style("top",(d3.event.pageY+20)+"px")  
+                        .style("visibility","visible");
+            })
+            .on("mouseout", function(d){
+              tooltip.style("visibility","hidden");
+
+              //恢复
+              //很有趣，只需要把fill设置为空，就可以沿用css的样式
+              g.select('.bubble').selectAll('circle')
+               .filter(function(node){
+                return node.id === d.id;
+               })
+               .each(function(){
+                 d3.select(this)
+                   //.attr("fill","")
+                   .style("stroke-width", "")
+                   .style("opacity", "")
+                   .attr("r", radius);
+               });
+            });
+           };
+
+           hoverOnBubble();
+           
+          
+          //LR选择函数
+          function selectLR(s){
+            function key_func(d) {
+                return d['id'];
+            }
+
+            if(s === "R"){
+              var filtered = data.filter(function(d) {
+                  return d["handedness"] === "R";
+              });
+
+              var circles = g.select('.bubble').selectAll('circle')
+                               .data(filtered, key_func);
+              
+              circles.exit().remove();
+              
+              circles.enter()
+                .append('circle')
+                .attr('cx', function(d){
+                  return x_scaler(d['avg']);
+                 })
+                .attr('cy', function(d){
+                  return y_scaler(d['HR']);
+                  })
+                .attr('r', radius);
+
+              circles.attr("fill", "green");
+
+              hoverOnBubble();
+
+            }else if(s === "L"){
+              var filtered = data.filter(function(d) {
+                  return d["handedness"] === "L";
+                  
+              });
+
+              var circles = g.select('.bubble').selectAll('circle')
+                               .data(filtered, key_func);
+              
+              circles.exit().remove();
+
+              circles.enter()
+                .append('circle')
+                .attr('cx', function(d){
+                  return x_scaler(d['avg']);
+                 })
+                .attr('cy', function(d){
+                  return y_scaler(d['HR']);
+                  })
+                .attr('r', radius);
+
+              circles.attr("fill", "lightBlue");
+
+              hoverOnBubble();
+
+            }else if(s === "ALL"){
+              g.select('.bubble')
+               .selectAll('circle')
+               .data(data)
+               .enter()
+               .append('circle')
+               .attr('cx', function(d){
+                return x_scaler(d['avg']);
+               })
+               .attr('cy', function(d){
+                return y_scaler(d['HR']);
+               })
+               .attr('r', radius);
+
+              var filtered = data.filter(function(d) {
+                  return d["handedness"] === "L";  
+              });
+
+              var circles = g.select('.bubble').selectAll('circle')
+                               .data(filtered, key_func);
+
+              circles.attr("fill", "lightblue");
+
+              circles.exit().attr("fill", "green");
+
+              hoverOnBubble();
+
+
+            }else if(s === "NONE"){
+              var circles = g.select('.bubble')
+               .selectAll('circle')
+               .data(data, key_func);
+
+              circles.enter()
+               .append('circle')
+               .attr('cx', function(d){
+                return x_scaler(d['avg']);
+               })
+               .attr('cy', function(d){
+                return y_scaler(d['HR']);
+               })
+               .attr('r', radius);
+
+              circles.attr("fill", "");
+
+              hoverOnBubble();
+            };
+          };
+          
+
+        var buttons = d3.select("body")
+                        .append("div")
+                        .attr("class", "buttons")
+                        .selectAll("div")
+                        .data(["L", "R"])
+                        .enter()
+                        .append("div")
+                        .text(function(d) {
+                            return d;
+                        });
+
+        var selected_button = [false, false];
+
+        buttons.on("click", function(d) {
+          if(this.textContent === "L"){
+            selected_button[0] = !selected_button[0];
+          }else{
+            selected_button[1] = !selected_button[1];
+          };
+
+          if(selected_button[0] && !selected_button[1]){
+            d3.select(".buttons")
+              .selectAll("div")
+              .data(["L"],function(d){return d;})
+              .style("background", "lightBlue")
+              .style("color", "white")
+              .exit()
+              .style("background", "")
+              .style("color", "");
+
+            selectLR("L");
+          }else if(!selected_button[0] && selected_button[1]){
+            d3.select(".buttons")
+              .selectAll("div")
+              .data(["R"],function(d){return d;})
+              .style("background", "green")
+              .style("color", "white")
+              .exit()
+              .style("background", "")
+              .style("color", "");
+
+            selectLR("R");
+          }else if(selected_button[0] && selected_button[1]){
+            d3.select(".buttons")
+              .selectAll("div")
+              .data(["R"],function(d){return d;})
+              .style("background", "green")
+              .style("color", "white")
+              .exit()
+              .style("background", "lightBlue")
+              .style("color", "white");
+            
+              selectLR("ALL");
+          }else{
+            d3.select(".buttons")
+              .selectAll("div")
+              .style("background", "")
+              .style("color", "");
+
+              selectLR("NONE");
+          };
+            
+                });
+          
+        };
+
+        plotScatterLRScore();
+        
+        
+
+      };
+      </script>
+  </head>
+<body>
+  <script type="text/javascript">
+  
+  id = 0;
+  //read the data and transform the data format
+  d3.csv("baseball_data.csv", function(d) {
+    d["id"] = id;
+    id += 1;
+    d["height"] = +d["height"];
+    d["weight"] = +d["weight"];
+    d["avg"] = +d["avg"];
+    d["HR"] = +d["HR"];
+    return d;
+  },draw);
+  </script>
+</body>
+</html>
