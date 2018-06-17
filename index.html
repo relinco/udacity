@@ -65,8 +65,6 @@
             .append("svg")
             .attr("width", width + margin)
             .attr("height", height + margin);
-
-        
         
         function plotScatterLRScore(){
           var radius = 3;
@@ -117,7 +115,7 @@
           g.select('.x g text')
            .attr("visibility", "hidden");
 
-          //添加点
+          //添加点，B为什么没添加进去？
           g.append('g')
            .attr('class', 'bubble')
            .selectAll('circle')
@@ -194,173 +192,110 @@
             function key_func(d) {
                 return d['id'];
             }
+            
+            var circles = g.select('.bubble').selectAll('circle');
 
-            if(s === "R"){
+            circles.style("visibility","hidden").attr("fill","");
+
+            if(s[0])
+            {
               var filtered = data.filter(function(d) {
                   return d["handedness"] === "R";
               });
 
               var circles = g.select('.bubble').selectAll('circle')
-                               .data(filtered, key_func);
-              
-              circles.exit().remove();
-              
-              circles.enter()
-                .append('circle')
-                .attr('cx', function(d){
-                  return x_scaler(d['avg']);
-                 })
-                .attr('cy', function(d){
-                  return y_scaler(d['HR']);
-                  })
-                .attr('r', radius);
+                                            .data(filtered, key_func);
 
-              circles.attr("fill", "green");
+              circles.attr("fill", "green").style("visibility","visible");
+            };
 
-              hoverOnBubble();
-
-            }else if(s === "L"){
+            if(s[1])
+            {
               var filtered = data.filter(function(d) {
                   return d["handedness"] === "L";
-                  
               });
 
               var circles = g.select('.bubble').selectAll('circle')
-                               .data(filtered, key_func);
-              
-              circles.exit().remove();
+                                            .data(filtered, key_func);
 
-              circles.enter()
-                .append('circle')
-                .attr('cx', function(d){
-                  return x_scaler(d['avg']);
-                 })
-                .attr('cy', function(d){
-                  return y_scaler(d['HR']);
-                  })
-                .attr('r', radius);
+              circles.attr("fill", "lightblue").style("visibility","visible");
+            };
 
-              circles.attr("fill", "lightBlue");
-
-              hoverOnBubble();
-
-            }else if(s === "ALL"){
-              g.select('.bubble')
-               .selectAll('circle')
-               .data(data)
-               .enter()
-               .append('circle')
-               .attr('cx', function(d){
-                return x_scaler(d['avg']);
-               })
-               .attr('cy', function(d){
-                return y_scaler(d['HR']);
-               })
-               .attr('r', radius);
-
+            if(s[2])
+            {
               var filtered = data.filter(function(d) {
-                  return d["handedness"] === "L";  
+                  return d["handedness"] === "B";
               });
 
               var circles = g.select('.bubble').selectAll('circle')
-                               .data(filtered, key_func);
+                                            .data(filtered, key_func);
 
-              circles.attr("fill", "lightblue");
+              circles.attr("fill", "red").style("visibility","visible");
+            };
 
-              circles.exit().attr("fill", "green");
-
-              hoverOnBubble();
-
-
-            }else if(s === "NONE"){
-              var circles = g.select('.bubble')
-               .selectAll('circle')
-               .data(data, key_func);
-
-              circles.enter()
-               .append('circle')
-               .attr('cx', function(d){
-                return x_scaler(d['avg']);
-               })
-               .attr('cy', function(d){
-                return y_scaler(d['HR']);
-               })
-               .attr('r', radius);
-
-              circles.attr("fill", "");
-
-              hoverOnBubble();
+            if(!s[0] && !s[1] && !s[2]){
+              circles.style("visibility","visible");
             };
           };
+
           
 
         var buttons = d3.select("body")
                         .append("div")
                         .attr("class", "buttons")
                         .selectAll("div")
-                        .data(["L", "R"])
+                        .data(["Left", "Right", "Both"])
                         .enter()
                         .append("div")
                         .text(function(d) {
                             return d;
                         });
 
-        var selected_button = [false, false];
+        var selected_button = [false, false, false];
 
         buttons.on("click", function(d) {
-          if(this.textContent === "L"){
+          if(this.textContent === "Right"){
             selected_button[0] = !selected_button[0];
-          }else{
+          }else if(this.textContent === "Left"){
             selected_button[1] = !selected_button[1];
+          }else{
+            selected_button[2] = !selected_button[2];
           };
 
-          if(selected_button[0] && !selected_button[1]){
-            d3.select(".buttons")
-              .selectAll("div")
-              .data(["L"],function(d){return d;})
-              .style("background", "lightBlue")
-              .style("color", "white")
-              .exit()
-              .style("background", "")
-              .style("color", "");
+          d3.select(".buttons")
+            .selectAll("div")
+            .style("background", "")
+            .style("color", "");
 
-            selectLR("L");
-          }else if(!selected_button[0] && selected_button[1]){
+          if(selected_button[0]){
             d3.select(".buttons")
               .selectAll("div")
-              .data(["R"],function(d){return d;})
+              .data(["Right"],function(d){return d;})
               .style("background", "green")
-              .style("color", "white")
-              .exit()
-              .style("background", "")
-              .style("color", "");
-
-            selectLR("R");
-          }else if(selected_button[0] && selected_button[1]){
+              .style("color", "white");
+          };
+          if(selected_button[1]){
             d3.select(".buttons")
               .selectAll("div")
-              .data(["R"],function(d){return d;})
-              .style("background", "green")
-              .style("color", "white")
-              .exit()
+              .data(["Left"],function(d){return d;})
               .style("background", "lightBlue")
               .style("color", "white");
-            
-              selectLR("ALL");
-          }else{
+          };
+          if(selected_button[2]){
             d3.select(".buttons")
               .selectAll("div")
-              .style("background", "")
-              .style("color", "");
-
-              selectLR("NONE");
+              .data(["Both"],function(d){return d;})
+              .style("background", "red")
+              .style("color", "white");
           };
-            
+
+          selectLR(selected_button);
                 });
-          
         };
 
         plotScatterLRScore();
+
+        debugger;
         
         
 
