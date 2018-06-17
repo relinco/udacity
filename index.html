@@ -49,7 +49,10 @@
 
   
     </style>
-    <script type="text/javascript">  
+    <script type="text/javascript"> 
+      var vertical_line;
+      var horizontal_line;
+
       function draw(data) {
         "use strict";
         
@@ -130,6 +133,25 @@
             })
            .attr('r', radius);
 
+           //直线表示
+           var line_generator = d3.svg.line()
+                                      .x(function(d){
+                                        return x_scaler(d[0]);
+                                      })
+                                      .y(function(d){
+                                        return y_scaler(d[1]);
+                                      });
+
+           vertical_line = function (d){
+             return line_generator([[d,y_extent[0]], [d, y_extent[1]]]);
+           };
+
+           horizontal_line = function (d){
+             return line_generator([[x_extent[0], d], [x_extent[1], d]]);
+           };
+
+
+
            //浮动提示框，通过visbillity来进行显示和隐藏
            var tooltip = d3.select("body").append('div')
                           .attr("class","tooltip")
@@ -189,9 +211,12 @@
           
           //LR选择函数
           function selectLR(s){
+            
             function key_func(d) {
                 return d['id'];
-            }
+            };
+
+            g.selectAll(".meanline").remove();
             
             var circles = g.select('.bubble').selectAll('circle');
 
@@ -207,6 +232,29 @@
                                             .data(filtered, key_func);
 
               circles.attr("fill", "green").style("visibility","visible");
+
+              var HR_mean = d3.mean(filtered, function(d){return d.HR;});
+
+              var avg_mean = d3.mean(filtered, function(d){return d.avg;});
+
+
+
+
+              var avg_line = g.append('path')
+                             .attr('class', 'meanline')
+                             .attr('d', vertical_line(avg_mean))
+                             .style('stroke', 'green')
+                             .style('stroke-width', '2');
+
+              var HR_line = g.append('path')
+                             .attr('class', 'meanline')
+                             .attr('fill', 'green')
+                             .attr('d', horizontal_line(HR_mean))
+                             .style('stroke', 'green')
+                             .style('stroke-width', '2');
+
+              
+          
             };
 
             if(s[1])
@@ -219,6 +267,22 @@
                                             .data(filtered, key_func);
 
               circles.attr("fill", "lightblue").style("visibility","visible");
+
+              var HR_mean = d3.mean(filtered, function(d){return d.HR;});
+
+              var avg_mean = d3.mean(filtered, function(d){return d.avg;});
+
+              var avg_line = g.append('path')
+                            .attr('class', 'meanline')
+                            .attr('d', vertical_line(avg_mean))
+                            .style('stroke', 'lightblue')
+                            .style('stroke-width', '2');
+
+              var HR_line = g.append('path')
+                            .attr('class', 'meanline')
+                            .attr('d', horizontal_line(HR_mean))
+                            .style('stroke', 'lightblue')
+                            .style('stroke-width', '2');
             };
 
             if(s[2])
@@ -231,10 +295,42 @@
                                             .data(filtered, key_func);
 
               circles.attr("fill", "red").style("visibility","visible");
+
+              var HR_mean = d3.mean(filtered, function(d){return d.HR;});
+
+              var avg_mean = d3.mean(filtered, function(d){return d.avg;});
+
+              var avg_line = g.append('path')
+                            .attr('class', 'meanline')
+                            .attr('d', vertical_line(avg_mean))
+                            .style('stroke', 'red')
+                            .style('stroke-width', '2');
+
+              var HR_line = g.append('path')
+                            .attr('class', 'meanline')
+                            .attr('d', horizontal_line(HR_mean))
+                            .style('stroke', 'red')
+                            .style('stroke-width', '2');
             };
 
             if(!s[0] && !s[1] && !s[2]){
               circles.style("visibility","visible");
+
+              var HR_mean = d3.mean(data, function(d){return d.HR;});
+
+              var avg_mean = d3.mean(data, function(d){return d.avg;});
+
+              var avg_line = g.append('path')
+                            .attr('class', 'meanline')
+                            .attr('d', vertical_line(avg_mean))
+                            .style('stroke', 'orange')
+                            .style('stroke-width', '2');
+
+              var HR_line = g.append('path')
+                            .attr('class', 'meanline')
+                            .attr('d', horizontal_line(HR_mean))
+                            .style('stroke', 'orange')
+                            .style('stroke-width', '2');
             };
           };
 
